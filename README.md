@@ -12,6 +12,48 @@ UsageFlow integrates seamlessly with [`saas-subscription-helper`](https://github
 
 UsageFlow integrates seamlessly with [`saas-subscription-helper`](https://github.com/richardsondx/saas-subscription-helper) to manage subscriptions or works with manual Stripe setups for custom implementations. This flexibility makes it ideal for SaaS developers looking to add usage-based controls to their apps.
 
+## Common Use Cases
+
+### 1. Credit-Based SaaS Applications
+Perfect for platforms offering credit-based services like:
+- Apps with credits limits
+- API gateways with request quotas
+- File processing services with conversion limits
+```javascript
+await usageFlow.trackEvent({
+  userId: 'user-123',
+  eventType: 'design-export',
+  creditsUsed: 1
+});
+```
+
+### 2. AI Service Wrappers
+Ideal for applications managing AI model usage:
+- Track token consumption across GPT models
+- Monitor image generation credits
+- Enforce rate limits per model type
+```javascript
+await usageFlow.trackEvent({
+  userId: 'user-123',
+  eventType: 'gpt-4-completion',
+  creditsUsed: response.usage.total_tokens,
+  metadata: { model: 'gpt-4o-mini' }
+});
+```
+
+### 3. Tiered Feature Access
+Perfect for managing multi-tier subscriptions:
+- Basic: 100 exports/month
+- Pro: 1000 exports/month
+- Enterprise: Unlimited exports
+```javascript
+const canAccess = await usageFlow.authorize({
+  userId: 'user-123',
+  eventType: 'feature-access',
+  planTier: 'pro'
+});
+```
+
 ---
 
 ## How it Works
