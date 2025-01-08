@@ -14,7 +14,20 @@ UsageFlow integrates seamlessly with [`saas-subscription-helper`](https://github
 
 ## Common Use Cases
 
-### 1. Credit-Based SaaS Applications
+### 1. Tiered Feature Access
+Perfect for managing multi-tier subscriptions:
+- Basic: 100 exports/month
+- Pro: 1000 exports/month
+- Enterprise: Unlimited exports
+```javascript
+const canAccess = await usageFlow.authorize({
+  userId: 'user-123',
+  eventType: 'feature-access',
+  planTier: 'pro'
+});
+```
+
+### 2. Credit-Based SaaS Applications
 Perfect for platforms offering credit-based services like:
 - Apps with credits limits
 - API gateways with request quotas
@@ -27,7 +40,7 @@ await usageFlow.trackEvent({
 });
 ```
 
-### 2. AI Service Wrappers
+### 3. AI Service Wrappers
 Ideal for applications managing AI model usage:
 - Track token consumption across GPT models
 - Monitor image generation credits
@@ -38,19 +51,6 @@ await usageFlow.trackEvent({
   eventType: 'gpt-4-completion',
   creditsUsed: response.usage.total_tokens,
   metadata: { model: 'gpt-4o-mini' }
-});
-```
-
-### 3. Tiered Feature Access
-Perfect for managing multi-tier subscriptions:
-- Basic: 100 exports/month
-- Pro: 1000 exports/month
-- Enterprise: Unlimited exports
-```javascript
-const canAccess = await usageFlow.authorize({
-  userId: 'user-123',
-  eventType: 'feature-access',
-  planTier: 'pro'
 });
 ```
 
