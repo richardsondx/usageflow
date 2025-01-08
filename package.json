@@ -1,0 +1,51 @@
+{
+  "name": "usageflow",
+  "version": "1.0.0",
+  "description": "A lightweight Node.js package for usage tracking and limit enforcement in SaaS applications",
+  "main": "src/sdk/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "babel src -d dist",
+    "lint": "eslint src",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "saas",
+    "usage-tracking",
+    "stripe",
+    "supabase",
+    "subscription-management",
+    "usage-limits"
+  ],
+  "author": "Richardson Dackam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/richardsondx/usageflow.git"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "saas-subscription-helper": "^1.0.0",
+    "stripe": "^14.8.0"
+  },
+  "peerDependencies": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.23.4",
+    "@babel/core": "^7.23.4",
+    "@babel/preset-env": "^7.23.4",
+    "eslint": "^8.55.0",
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "README.md"
+  ]
+}

@@ -1,0 +1,1 @@
+// Example for manual Stripe setup

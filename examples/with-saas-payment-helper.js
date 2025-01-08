@@ -1,0 +1,1 @@
+// Example for saas-subscription-helper integration
