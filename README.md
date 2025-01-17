@@ -1,5 +1,12 @@
 # UsageFlow (In Development)
 
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png" height="40" alt="Stripe" />
+  <span style="margin: 0 10px;">+</span>
+  <img src="https://revolugame.com/p/setup-supabase-locally-with-docker/supabase-logo-wordmark--dark.png" height="40" alt="Supabase" />
+</p>
+
+
 A **lightweight Node.js package** for **usage tracking** and **limit enforcement** in SaaS applications. **UsageFlow** integrates seamlessly with the [`saas-subscription-helper`](https://github.com/richardsondx/saas-subscription-helper) package by default, or you can build a **custom (manual) Stripe integration** if preferred.
 
 > **Status:** Not production-ready yet. Early adopters welcome.
@@ -85,6 +92,8 @@ Install UsageFlow:
 ```bash
 npm install usageflow
 ```
+> **Note**: This package is currently in development and not yet published to npm. Stay tuned for the initial release!
+
 
 Install Required Peer Dependencies:
 ```bash
@@ -145,6 +154,8 @@ console.log(canAccess ? "Access granted" : "Limit exceeded. Upgrade required.");
 
 ## Supabase Schema
 
+> **Security Tip:** Enable Row Level Security (RLS) on all tables to protect user data.
+
 ### Table Configuration
 
 You can customize table names during initialization:
@@ -182,6 +193,32 @@ CREATE TABLE user_plans (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 ```
+
+### Price & Plan Management
+
+1. **Free Plans**:
+   - Set `is_free = TRUE`
+   - Leave `stripe_price_id` as NULL
+   - Example: Community or Basic tier
+
+2. **Paid Plans**:
+   - Set `is_free = FALSE`
+   - Provide valid `stripe_price_id` from Stripe
+   - Example: Pro or Enterprise tiers
+
+3. **Price Syncing**:
+   - **Initial Setup**: 
+     - First-time plan and price setup must be done manually in your database
+     - Insert records into `user_plans` table for each subscription tier
+     - Define feature limits in `usage_feature_limits` table
+   - **Automatic** (with saas-subscription-helper):
+     - Price changes in Stripe automatically sync via webhooks
+     - No additional configuration needed
+   - **Manual** (if `manualStripeIntegration: true`):
+     - Handle price syncing in your own webhook
+     - Implement your own price update logic
+
+**Note:** For display purposes, prices are stored in the database, but actual billing always uses live Stripe prices. This ensures accurate billing while providing fast price display in your application.
 
 2. **`usage_feature_limits` Table**
 ```sql
@@ -448,6 +485,65 @@ export async function POST(req) {
 }
 ```
 
+### Required Webhook Events
+
+| Event | Purpose | Required By |
+|-------|----------|------------|
+| `price.updated` | Syncs price changes | UsageFlow |
+| `customer.subscription.updated` | Updates subscription status | saas-subscription-helper |
+| Other subscription events | Manages subscription lifecycle | saas-subscription-helper |
+
+### Setting Up Webhooks
+
+1. **Create Webhook Endpoint**:
+```javascript
+// app/api/webhooks/route.js
+import Stripe from 'stripe';
+
+export async function POST(req) {
+  try {
+    const event = stripe.webhooks.constructEvent(
+      await req.text(),
+      req.headers.get("stripe-signature"),
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+    
+    // UsageFlow needs the price.updated webhook to keep its internal price records 
+    // in sync with Stripe. When you update prices in Stripe (e.g. changing tiers, 
+    // limits or costs), this webhook ensures UsageFlow's usage tracking and limit 
+    // enforcement stays accurate with the latest pricing configuration.
+    if (event.type === 'price.updated') {
+      // UsageFlow automatically updates the price_amount and price_currency fields
+      await usageFlow.syncPrice(event.data.object);
+    }
+
+    return new Response(JSON.stringify({ received: true }));
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+  }
+}
+```
+
+2. **Test locally using Stripe CLI**:
+```bash
+# Install Stripe CLI if you haven't already
+brew install stripe/stripe-cli/stripe
+
+# Login to Stripe
+stripe login
+
+# Forward webhooks to your local endpoint
+stripe listen --forward-to localhost:3000/api/webhooks
+```
+
+3. **Configure Stripe Webhook Settings**:
+   - Go to Stripe Dashboard > Developers > Webhooks
+   - Add endpoint URL: https://your-domain.com/api/webhooks
+   - Select events to listen for:
+     - price.updated (for UsageFlow price syncing)
+     - customer.subscription.updated (for subscription management)
+     - Other events required by saas-subscription-helper
+
 ### Using Edge Functions
 
 Deploy webhooks on Supabase Edge Functions:
@@ -475,14 +571,6 @@ serve(async (req) => {
 });
 ```
 
-### Required Webhook Events
-
-| Event | Purpose | Required By |
-|-------|----------|------------|
-| `price.updated` | Syncs price changes | UsageFlow |
-| `customer.subscription.updated` | Updates subscription status | saas-subscription-helper |
-| Other subscription events | Manages subscription lifecycle | saas-subscription-helper |
-
 ## Testing Your Setup
 
 ### Test Connection
@@ -507,6 +595,16 @@ const usageFlow = new UsageFlow({
   debug: true
 });
 ```
+
+### TODO
+
+The following test coverage improvements are planned:
+
+- Add comprehensive unit test suite
+- Add test coverage reporting
+
+The goal is to achieve >80% test coverage across all core functionality to ensure reliability and catch potential issues early.
+
 
 ## License
 

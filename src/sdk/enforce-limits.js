@@ -1,42 +1,55 @@
 import { LimitAdjustment } from './limit-adjustment'
 
 export class LimitEnforcer {
-  constructor(supabaseClient, config) {
+  constructor(supabaseClient, config, debug) {
     this.supabase = supabaseClient
     this.config = config
+    this.debug = debug
     this.adjustment = new LimitAdjustment(supabaseClient, config)
   }
 
   async authorize({ userId, featureName }) {
-    // Get user's current plan
-    const [user] = await this.supabase.fetch('users', {
-      column: 'id',
-      value: userId
+    this.debug.log('LimitEnforcer', 'Checking authorization', {
+      userId, featureName
     })
 
-    if (!user || !user.plan) {
-      throw new Error('User not found or no plan assigned')
+    try {
+      // Get user's current plan
+      const [user] = await this.supabase.fetch('users', {
+        column: 'id',
+        value: userId
+      })
+
+      if (!user || !user.plan) {
+        throw new Error('User not found or no plan assigned')
+      }
+
+      // Get feature limits for the plan
+      const [limit] = await this.supabase.fetch(this.config.usageFeatureLimitsTable, {
+        column: 'feature_name',
+        value: featureName
+      })
+
+      if (!limit) return true // No limit defined means unlimited usage
+
+      // Get current usage
+      const { data: usage } = await this.supabase.client
+        .from(this.config.usageEventsTable)
+        .select('credits_used')
+        .eq('user_id', userId)
+        .eq('feature_name', featureName)
+        .gte('timestamp', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+      const totalUsage = usage.reduce((sum, event) => sum + event.credits_used, 0)
+
+      const isAuthorized = totalUsage < limit.limit_value
+
+      this.debug.log('LimitEnforcer', 'Authorization result', { isAuthorized })
+      return isAuthorized
+    } catch (error) {
+      this.debug.error('LimitEnforcer', 'Authorization check failed', error)
+      throw error
     }
-
-    // Get feature limits for the plan
-    const [limit] = await this.supabase.fetch(this.config.usageFeatureLimitsTable, {
-      column: 'feature_name',
-      value: featureName
-    })
-
-    if (!limit) return true // No limit defined means unlimited usage
-
-    // Get current usage
-    const { data: usage } = await this.supabase.client
-      .from(this.config.usageEventsTable)
-      .select('credits_used')
-      .eq('user_id', userId)
-      .eq('feature_name', featureName)
-      .gte('timestamp', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-
-    const totalUsage = usage.reduce((sum, event) => sum + event.credits_used, 0)
-
-    return totalUsage < limit.limit_value
   }
 
   async fetchFeatureLimit({ planId, featureName }) {

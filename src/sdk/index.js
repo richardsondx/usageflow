@@ -6,16 +6,21 @@ import { UsageCalculator } from './usage-calculator'
 import { PaymentHelper } from '../integrations/saas-payment-helper'
 import { StripeIntegration } from '../integrations/stripe'
 import { LimitAdjustment } from './limit-adjustment'
+import { DebugLogger } from '../utils/debug-logger'
 
 export class UsageFlow {
   constructor(config) {
     this.config = validateConfig(config)
+    this.debug = new DebugLogger(config.debug)
+    
+    this.debug.log('UsageFlow', 'Initializing SDK', { config: { ...config, supabaseKey: '[REDACTED]' } })
+    
     this.supabase = new SupabaseClient(config.supabaseUrl, config.supabaseKey)
     
-    // Initialize modules
-    this.operations = new UsageOperations(this.supabase, this.config)
-    this.enforcer = new LimitEnforcer(this.supabase, this.config)
-    this.calculator = new UsageCalculator(this.supabase, this.config)
+    // Pass debug logger to all modules
+    this.operations = new UsageOperations(this.supabase, this.config, this.debug)
+    this.enforcer = new LimitEnforcer(this.supabase, this.config, this.debug)
+    this.calculator = new UsageCalculator(this.supabase, this.config, this.debug)
     
     // Initialize payment integration
     if (this.config.manualStripeIntegration) {

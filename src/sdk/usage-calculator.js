@@ -1,10 +1,15 @@
 export class UsageCalculator {
-  constructor(supabaseClient, config) {
+  constructor(supabaseClient, config, debug) {
     this.supabase = supabaseClient
     this.config = config
+    this.debug = debug
   }
 
   async getTotalUsage({ userId, featureName, period = 'current_month' }) {
+    this.debug.log('UsageCalculator', 'Fetching total usage', {
+      userId, featureName, period
+    })
+
     if (!userId || !featureName) {
       throw new Error('Missing required parameters: userId, featureName')
     }
@@ -20,17 +25,21 @@ export class UsageCalculator {
         .gte('timestamp', startDate.toISOString())
         .in('event_type', ['usage', 'adjustment', 'credit'])
 
-      return events?.reduce((sum, event) => sum + (event.credits_used || 0), 0) || 0
+      const result = events?.reduce((sum, event) => sum + (event.credits_used || 0), 0) || 0
+      this.debug.log('UsageCalculator', 'Total usage fetched', { total: result })
+      return result
 
     } catch (error) {
-      if (this.config.debug) {
-        console.error('Error fetching total usage:', error)
-      }
+      this.debug.error('UsageCalculator', 'Failed to fetch total usage', error)
       throw error
     }
   }
 
   async getUsageStats({ userId, featureName, period = 'current_month', groupBy = 'day' }) {
+    this.debug.log('UsageCalculator', 'Fetching usage stats', {
+      userId, featureName, period, groupBy
+    })
+
     if (!userId || !featureName) {
       throw new Error('Missing required parameters: userId, featureName')
     }
@@ -63,14 +72,16 @@ export class UsageCalculator {
       const groupedEvents = this._groupEventsByPeriod(events, groupBy)
       return this._calculateStats(groupedEvents)
     } catch (error) {
-      if (this.config.debug) {
-        console.error('Error fetching usage stats:', error)
-      }
+      this.debug.error('UsageCalculator', 'Failed to fetch usage stats', error)
       throw error
     }
   }
 
   async getBatchUsageStats({ userIds, featureNames, period = 'current_month' }) {
+    this.debug.log('UsageCalculator', 'Fetching batch usage stats', {
+      userIds, featureNames, period
+    })
+
     if (!userIds?.length || !featureNames?.length) {
       throw new Error('Missing required parameters: userIds, featureNames')
     }
