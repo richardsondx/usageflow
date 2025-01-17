@@ -1,10 +1,11 @@
 import { validateConfig } from '../utils/validate-config'
 import SupabaseClient from '../utils/supabase'
-import { UsageTracker } from './track-event'
+import { UsageOperations } from './usage-operations'
 import { LimitEnforcer } from './enforce-limits'
 import { UsageCalculator } from './usage-calculator'
 import { PaymentHelper } from '../integrations/saas-payment-helper'
 import { StripeIntegration } from '../integrations/stripe'
+import { LimitAdjustment } from './limit-adjustment'
 
 export class UsageFlow {
   constructor(config) {
@@ -12,7 +13,7 @@ export class UsageFlow {
     this.supabase = new SupabaseClient(config.supabaseUrl, config.supabaseKey)
     
     // Initialize modules
-    this.tracker = new UsageTracker(this.supabase, this.config)
+    this.operations = new UsageOperations(this.supabase, this.config)
     this.enforcer = new LimitEnforcer(this.supabase, this.config)
     this.calculator = new UsageCalculator(this.supabase, this.config)
     
@@ -22,11 +23,19 @@ export class UsageFlow {
     } else {
       this.payments = new PaymentHelper(config)
     }
+
+    if (config.enableUserAdjustments) {
+      this.adjustment = new LimitAdjustment(this.supabase, this.config)
+    }
   }
 
   // Public API methods
-  async trackEvent(params) {
-    return await this.tracker.trackEvent(params)
+  async incrementUsage(params) {
+    return await this.operations.incrementUsage(params)
+  }
+
+  async adjustUsage(params) {
+    return await this.operations.adjustUsage(params)
   }
 
   async authorize(params) {
@@ -62,6 +71,42 @@ export class UsageFlow {
         console.error('Connection check failed:', error);
       }
       return false;
+    }
+  }
+
+  async addLimitAdjustment(params) {
+    if (!this.config.enableUserAdjustments) {
+      throw new Error('User adjustments are not enabled in configuration')
+    }
+    return await this.adjustment.addAdjustment(params)
+  }
+
+  async fetchUsage({ userId, featureName, period = 'current_month' }) {
+    try {
+      // Parallel fetch for better performance
+      const [currentUsage, limit] = await Promise.all([
+        this.calculator.getTotalUsage({ 
+          userId, 
+          featureName,
+          period 
+        }),
+        this.enforcer.fetchFeatureLimitForUser({ 
+          userId, 
+          featureName 
+        })
+      ]);
+
+      return {
+        current: currentUsage,
+        limit: limit,
+        remaining: limit === null ? null : limit - currentUsage,
+        isUnlimited: limit === null
+      };
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Error in fetchUsage:', error);
+      }
+      throw error;
     }
   }
 }

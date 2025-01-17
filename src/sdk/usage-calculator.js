@@ -4,22 +4,23 @@ export class UsageCalculator {
     this.config = config
   }
 
-  async getTotalUsage({ userId, feature_name, period = 'current_month' }) {
-    if (!userId || !feature_name) {
-      throw new Error('Missing required parameters: userId, feature_name')
+  async getTotalUsage({ userId, featureName, period = 'current_month' }) {
+    if (!userId || !featureName) {
+      throw new Error('Missing required parameters: userId, featureName')
     }
 
     try {
       const startDate = this._getStartDate(period)
 
-      const { data: usage } = await this.supabase.client
+      const { data: events } = await this.supabase.client
         .from(this.config.usageEventsTable)
-        .select('credits_used')
+        .select('credits_used, event_type')
         .eq('user_id', userId)
-        .eq('feature_name', feature_name)
+        .eq('feature_name', featureName)
         .gte('timestamp', startDate.toISOString())
+        .in('event_type', ['usage', 'adjustment', 'credit'])
 
-      return usage?.reduce((sum, event) => sum + (event.credits_used || 0), 0) || 0
+      return events?.reduce((sum, event) => sum + (event.credits_used || 0), 0) || 0
 
     } catch (error) {
       if (this.config.debug) {
@@ -29,9 +30,9 @@ export class UsageCalculator {
     }
   }
 
-  async getUsageStats({ userId, feature_name, period = 'current_month', groupBy = 'day' }) {
-    if (!userId || !feature_name) {
-      throw new Error('Missing required parameters: userId, feature_name')
+  async getUsageStats({ userId, featureName, period = 'current_month', groupBy = 'day' }) {
+    if (!userId || !featureName) {
+      throw new Error('Missing required parameters: userId, featureName')
     }
 
     if (!['hour', 'day', 'week', 'month'].includes(groupBy)) {
@@ -45,7 +46,7 @@ export class UsageCalculator {
         .from(this.config.usageEventsTable)
         .select('credits_used, timestamp')
         .eq('user_id', userId)
-        .eq('feature_name', feature_name)
+        .eq('feature_name', featureName)
         .gte('timestamp', startDate.toISOString())
         .order('timestamp', { ascending: true })
 
@@ -69,19 +70,19 @@ export class UsageCalculator {
     }
   }
 
-  async getBatchUsageStats({ userIds, feature_names, period = 'current_month' }) {
-    if (!userIds?.length || !feature_names?.length) {
-      throw new Error('Missing required parameters: userIds, feature_names')
+  async getBatchUsageStats({ userIds, featureNames, period = 'current_month' }) {
+    if (!userIds?.length || !featureNames?.length) {
+      throw new Error('Missing required parameters: userIds, featureNames')
     }
 
     const results = {}
     
     for (const userId of userIds) {
       results[userId] = {}
-      for (const feature of feature_names) {
+      for (const feature of featureNames) {
         results[userId][feature] = await this.getUsageStats({
           userId,
-          feature_name: feature,
+          featureName: feature,
           period
         })
       }

@@ -1,10 +1,13 @@
+import { LimitAdjustment } from './limit-adjustment'
+
 export class LimitEnforcer {
   constructor(supabaseClient, config) {
     this.supabase = supabaseClient
     this.config = config
+    this.adjustment = new LimitAdjustment(supabaseClient, config)
   }
 
-  async authorize({ userId, feature_name }) {
+  async authorize({ userId, featureName }) {
     // Get user's current plan
     const [user] = await this.supabase.fetch('users', {
       column: 'id',
@@ -18,7 +21,7 @@ export class LimitEnforcer {
     // Get feature limits for the plan
     const [limit] = await this.supabase.fetch(this.config.usageFeatureLimitsTable, {
       column: 'feature_name',
-      value: feature_name
+      value: featureName
     })
 
     if (!limit) return true // No limit defined means unlimited usage
@@ -28,7 +31,7 @@ export class LimitEnforcer {
       .from(this.config.usageEventsTable)
       .select('credits_used')
       .eq('user_id', userId)
-      .eq('feature_name', feature_name)
+      .eq('feature_name', featureName)
       .gte('timestamp', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
 
     const totalUsage = usage.reduce((sum, event) => sum + event.credits_used, 0)
@@ -97,7 +100,18 @@ export class LimitEnforcer {
         throw new Error(`Failed to fetch feature limit: ${limitError.message}`)
       }
 
-      return featureLimit?.limit_value || null
+      let finalLimit = featureLimit?.limit_value || null
+
+      // Add adjustments if enabled
+      if (this.config.enableUserAdjustments && finalLimit !== null) {
+        const adjustment = await this.adjustment.getActiveAdjustments({
+          userId,
+          featureName
+        })
+        finalLimit += adjustment
+      }
+
+      return finalLimit
     } catch (error) {
       if (this.config.debug) {
         console.error('Error in fetchFeatureLimitForUser:', error)

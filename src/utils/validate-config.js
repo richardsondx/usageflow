@@ -16,9 +16,11 @@ export function validateConfig(config) {
   return {
     debug: false,
     manualStripeIntegration: false,
+    enableUserAdjustments: false,
     userPlansTable: 'user_plans',
     usageEventsTable: 'usage_events',
     usageFeatureLimitsTable: 'usage_feature_limits',
+    userLimitAdjustmentsTable: 'user_limit_adjustments',
     ...config
   }
 }
