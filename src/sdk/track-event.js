@@ -4,14 +4,14 @@ export class UsageTracker {
     this.config = config
   }
 
-  async trackEvent({ userId, eventType, creditsUsed, metadata = {} }) {
-    if (!userId || !eventType || typeof creditsUsed !== 'number') {
-      throw new Error('Missing required parameters: userId, eventType, creditsUsed')
+  async trackEvent({ userId, feature_name, creditsUsed, metadata = {} }) {
+    if (!userId || !feature_name || typeof creditsUsed !== 'number') {
+      throw new Error('Missing required parameters: userId, feature_name, creditsUsed')
     }
 
     const event = {
       user_id: userId,
-      event_type: eventType,
+      feature_name: feature_name,
       credits_used: creditsUsed,
       metadata,
       timestamp: new Date().toISOString()

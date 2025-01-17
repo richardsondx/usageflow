@@ -1,5 +1,11 @@
 export function validateConfig(config) {
   const required = ['supabaseUrl', 'supabaseKey']
+  
+  // Add stripe-related fields to required fields if not using manual integration
+  if (!config.manualStripeIntegration) {
+    required.push('stripeSecretKey', 'stripeWebhookSecret')
+  }
+  
   const missing = required.filter(key => !config[key])
   
   if (missing.length) {
