@@ -142,6 +142,19 @@ const canAccess = await usageFlow.authorize({
 console.log(canAccess ? "Access granted" : "Limit exceeded. Upgrade required.");
 ```
 
+## Testing Your Setup
+
+### Test Connection
+
+```javascript
+try {
+  const isConnected = await usageFlow.connectionCheck();
+  console.log(isConnected ? "Connection successful" : "Connection failed");
+} catch (error) {
+  console.error("Connection check error:", error.message);
+}
+```
+
 ## How It Works
 
 **UsageFlow** simplifies usage tracking and limit enforcement in your SaaS application:
@@ -571,18 +584,45 @@ serve(async (req) => {
 });
 ```
 
-## Testing Your Setup
+## API Reference
 
-### Test Connection
+| Method | Description | Parameters | Returns |
+|--------|-------------|------------|---------|
+| `incrementUsage` | Track feature usage for a user | - `userId` (string): User identifier<br>- `featureName` (string): Feature being used<br>- `creditsUsed` (number): Amount of credits to consume<br>- `metadata` (object, optional): Additional context | Promise<void> |
+| `adjustUsage` | Adjust usage (refunds/bonuses) | - `userId` (string): User identifier<br>- `featureName` (string): Feature to adjust<br>- `amount` (number): Credits to add/remove<br>- `metadata` (object): Must include `reason` | Promise<void> |
+| `authorize` | Check if user can access feature | - `userId` (string): User identifier<br>- `featureName` (string): Feature to check | Promise<boolean> |
+| `fetchUsage` | Get usage details with limits | - `userId` (string): User identifier<br>- `featureName` (string): Feature to check<br>- `period` (string, optional): Time period | Promise<{<br>&nbsp;&nbsp;current: number,<br>&nbsp;&nbsp;limit: number,<br>&nbsp;&nbsp;remaining: number,<br>&nbsp;&nbsp;isUnlimited: boolean<br>}> |
+| `getTotalUsage` | Get raw usage total | - `userId` (string): User identifier<br>- `featureName` (string): Feature to check<br>- `period` (string, optional): Time period | Promise<number> |
+| `getUsageStats` | Get detailed usage statistics | - `userId` (string): User identifier<br>- `featureName` (string): Feature to analyze<br>- `period` (string, optional): Time period<br>- `groupBy` (string, optional): Grouping interval | Promise<{<br>&nbsp;&nbsp;total: number,<br>&nbsp;&nbsp;average: number,<br>&nbsp;&nbsp;max: number,<br>&nbsp;&nbsp;min: number,<br>&nbsp;&nbsp;byPeriod: Array<{<br>&nbsp;&nbsp;&nbsp;&nbsp;date: string,<br>&nbsp;&nbsp;&nbsp;&nbsp;total: number<br>&nbsp;&nbsp;}>}<br>}> |
+| `getBatchUsageStats` | Get stats for multiple users/features | - `userIds` (string[]): User identifiers<br>- `featureNames` (string[]): Features to analyze<br>- `period` (string, optional): Time period | Promise<Record<string, Record<string, UsageStats>>> |
+| `fetchFeatureLimit` | Get feature limit for a plan | - `planId` (number): Plan identifier<br>- `featureName` (string): Feature to check | Promise<number \| null> |
+| `fetchFeatureLimitForUser` | Get user's current feature limit | - `userId` (string): User identifier<br>- `featureName` (string): Feature to check | Promise<number \| null> |
+| `addLimitAdjustment` | Add temporary/permanent limit adjustment | - `userId` (string): User identifier<br>- `featureName` (string): Feature to adjust<br>- `amount` (number): Adjustment amount<br>- `type` ('one_time' \| 'recurring'): Adjustment type<br>- `startDate` (Date): When adjustment starts<br>- `endDate` (Date): When adjustment ends | Promise<void> |
+| `connectionCheck` | Test database connectivity | None | Promise<boolean> |
 
-```javascript
-try {
-  const isConnected = await usageFlow.connectionCheck();
-  console.log(isConnected ? "Connection successful" : "Connection failed");
-} catch (error) {
-  console.error("Connection check error:", error.message);
-}
-```
+### Period Options
+
+The `period` parameter accepts these values:
+- `'current_month'` (default)
+- `'last_30_days'`
+- `'last_28_days'`
+- `'current_week'`
+
+### GroupBy Options
+
+The `groupBy` parameter accepts:
+- `'hour'`
+- `'day'` (default)
+- `'week'`
+- `'month'`
+
+### Metadata Structure
+
+The `metadata` object can include any JSON-serializable data. Common fields:
+- `model`: For AI-related features
+- `reason`: Required for adjustments
+- `type`: For categorizing usage
+
 
 ### Debug Mode
 
