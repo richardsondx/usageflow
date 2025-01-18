@@ -86,32 +86,22 @@ export class UsageFlow {
     return await this.adjustment.addAdjustment(params)
   }
 
-  async fetchUsage({ userId, featureName, period = 'current_month' }) {
-    try {
-      // Parallel fetch for better performance
-      const [currentUsage, limit] = await Promise.all([
-        this.calculator.getTotalUsage({ 
-          userId, 
-          featureName,
-          period 
-        }),
-        this.enforcer.fetchFeatureLimitForUser({ 
-          userId, 
-          featureName 
-        })
-      ]);
-
-      return {
-        current: currentUsage,
-        limit: limit,
-        remaining: limit === null ? null : limit - currentUsage,
-        isUnlimited: limit === null
-      };
-    } catch (error) {
-      if (this.config.debug) {
-        console.error('Error in fetchUsage:', error);
-      }
-      throw error;
+  async fetchUsage({ userId, featureName }) {
+    if (!userId || !featureName) {
+      throw new Error('USAGE_INVALID_PARAMS: userId and featureName are required')
     }
+
+    // Let database errors pass through
+    const [currentUsage, limit] = await Promise.all([
+      this.calculator.getTotalUsage({ userId, featureName }),
+      this.enforcer.fetchFeatureLimitForUser({ userId, featureName })
+    ]);
+
+    return {
+      current: currentUsage,
+      limit: limit,
+      remaining: limit === null ? null : limit - currentUsage,
+      isUnlimited: limit === null
+    };
   }
 }

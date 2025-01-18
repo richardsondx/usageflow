@@ -1,26 +1,23 @@
+import { throwError, ErrorCodes } from './errors'
+
 export function validateConfig(config) {
-  const required = ['supabaseUrl', 'supabaseKey']
-  
-  // Add stripe-related fields to required fields if not using manual integration
-  if (!config.manualStripeIntegration) {
-    required.push('stripeSecretKey', 'stripeWebhookSecret')
-  }
-  
-  const missing = required.filter(key => !config[key])
-  
-  if (missing.length) {
-    throw new Error(`Missing required config: ${missing.join(', ')}`)
+  if (!config.supabaseUrl || !config.supabaseKey) {
+    throwError(
+      ErrorCodes.USAGE_CONFIG_ERROR,
+      'Missing required configuration: supabaseUrl and supabaseKey',
+      { provided: Object.keys(config) }
+    )
   }
 
-  // Set defaults for optional configs
   return {
-    debug: false,
-    manualStripeIntegration: false,
-    enableUserAdjustments: false,
-    userPlansTable: 'user_plans',
-    usageEventsTable: 'usage_events',
-    usageFeatureLimitsTable: 'usage_feature_limits',
-    userLimitAdjustmentsTable: 'user_limit_adjustments',
-    ...config
+    supabaseUrl: config.supabaseUrl,
+    supabaseKey: config.supabaseKey,
+    debug: !!config.debug,
+    manualStripeIntegration: !!config.manualStripeIntegration,
+    enableUserAdjustments: !!config.enableUserAdjustments,
+    userPlansTable: config.userPlansTable || 'user_plans',
+    usageEventsTable: config.usageEventsTable || 'usage_events',
+    usageFeatureLimitsTable: config.usageFeatureLimitsTable || 'usage_feature_limits',
+    userLimitAdjustmentsTable: config.userLimitAdjustmentsTable || 'user_limit_adjustments'
   }
 }

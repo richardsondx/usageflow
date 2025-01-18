@@ -1,3 +1,5 @@
+import { throwError, ErrorCodes } from '../utils/errors'
+
 export class UsageOperations {
   constructor(supabaseClient, config, debug) {
     this.supabase = supabaseClient
@@ -12,7 +14,11 @@ export class UsageOperations {
 
     try {
       if (!userId || !featureName || typeof creditsUsed !== 'number') {
-        throw new Error('Missing required parameters: userId, featureName, creditsUsed')
+        throwError(
+          ErrorCodes.USAGE_INVALID_PARAMS,
+          'userId, featureName, and creditsUsed are required',
+          { userId, featureName, creditsUsed }
+        )
       }
 
       const event = {
@@ -24,9 +30,19 @@ export class UsageOperations {
         timestamp: new Date().toISOString()
       }
 
-      const result = await this.supabase.insert(this.config.usageEventsTable, event)
-      this.debug.log('UsageOperations', 'Usage tracked successfully', { result })
-      return result
+      try {
+        return await this.supabase.insert(this.config.usageEventsTable, event)
+      } catch (dbError) {
+        throwError(
+          ErrorCodes.USAGE_CONFIG_ERROR,
+          'Failed to insert usage event',
+          { 
+            originalError: dbError.message,
+            event,
+            table: this.config.usageEventsTable 
+          }
+        )
+      }
 
     } catch (error) {
       this.debug.error('UsageOperations', 'Failed to track usage', error)
@@ -41,11 +57,19 @@ export class UsageOperations {
 
     try {
       if (!userId || !featureName || typeof amount !== 'number') {
-        throw new Error('Missing required parameters: userId, featureName, amount')
+        throwError(
+          ErrorCodes.USAGE_INVALID_PARAMS,
+          'userId, featureName, and amount are required',
+          { userId, featureName, amount }
+        )
       }
 
       if (!metadata.reason) {
-        throw new Error('Adjustment metadata must include a reason')
+        throwError(
+          ErrorCodes.USAGE_ADJUSTMENT_ERROR,
+          'Adjustment metadata must include reason',
+          { metadata }
+        )
       }
 
       const event = {

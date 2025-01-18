@@ -49,12 +49,12 @@ Perfect for managing multi-tier subscriptions:
 - Basic: 100 exports/month
 - Pro: 1000 exports/month
 - Enterprise: Unlimited exports
-```javascript
+   ```javascript
 const canAccess = await usageFlow.authorize({
   userId: 'user-123',
   featureName: 'ai_chat_limit'
-});
-```
+   });
+   ```
 The package automatically determines the user's plan and feature access based on their subscription
 
 
@@ -63,13 +63,13 @@ Perfect for platforms offering credit-based services like:
 - Design tools with export credits
 - API gateways with request quotas
 - File processing services with conversion limits
-```javascript
+   ```javascript
 await usageFlow.incrementUsage({
-  userId: 'user-123',
+     userId: 'user-123',
   featureName: 'design-export',
   creditsUsed: 1
-});
-```
+   });
+   ```
 
 ### 3. AI Service Wrappers
 Ideal for applications managing AI model usage:
@@ -77,9 +77,9 @@ Ideal for applications managing AI model usage:
 - Monitor image generation credits
 - Enforce rate limits per model type
 
-```javascript
+   ```javascript
 await usageFlow.incrementUsage({
-  userId: 'user-123',
+     userId: 'user-123',
   featureName: 'gpt-4-completion',
   creditsUsed: response.usage.total_tokens,
   metadata: { model: 'gpt-4o-mini' }
@@ -466,16 +466,16 @@ const usageFlow = new UsageFlow({
 
 For custom Stripe integrations:
 
-```javascript
+   ```javascript
 const usageFlow = new UsageFlow({
   supabaseUrl: 'your-supabase-url',
   supabaseKey: 'your-supabase-key',
   manualStripeIntegration: true,
-});
-```
+   });
+   ```
 
 Handle price updates in your webhook:
-```javascript
+   ```javascript
 // app/api/webhooks/route.js
 import Stripe from 'stripe';
 
@@ -509,7 +509,7 @@ export async function POST(req) {
 ### Setting Up Webhooks
 
 1. **Create Webhook Endpoint**:
-```javascript
+   ```javascript
 // app/api/webhooks/route.js
 import Stripe from 'stripe';
 
@@ -623,8 +623,67 @@ The `metadata` object can include any JSON-serializable data. Common fields:
 - `reason`: Required for adjustments
 - `type`: For categorizing usage
 
+## Error Handling
 
-### Debug Mode
+UsageFlow uses standardized error codes to help you handle errors consistently. Each method throws specific error types:
+
+### Error Types By Method
+
+| Method | Possible Error Codes | Common Scenarios |
+|--------|---------------------|------------------|
+| `incrementUsage` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_CONFIG_ERROR` | - Missing/invalid userId (must be database ID)<br>- Missing featureName<br>- Database insert failure |
+| `adjustUsage` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_CONFIG_ERROR`<br>- `USAGE_ADJUSTMENT_ERROR` | - Missing required fields<br>- Missing adjustment reason<br>- Invalid adjustment amount |
+| `authorize` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_LIMIT_ERROR`<br>- `USAGE_CONFIG_ERROR` | - User not found<br>- No plan assigned<br>- Failed to fetch limits |
+| `fetchUsage` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_LIMIT_ERROR`<br>- `USAGE_CONFIG_ERROR` | - Invalid user/feature<br>- Failed to fetch current usage<br>- Failed to fetch limits |
+| `fetchFeatureLimitForUser` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_CONFIG_ERROR`<br>- `USAGE_LIMIT_ERROR`<br>- `USAGE_ADJUSTMENT_ERROR` | - User not found<br>- No plan assigned<br>- Failed to apply adjustments |
+| `addLimitAdjustment` | - `USAGE_INVALID_PARAMS`<br>- `USAGE_ADJUSTMENT_ERROR` | - Invalid adjustment period<br>- Adjustments not enabled |
+
+### Best Practices
+
+1. **Always check error codes**:
+```typescript
+try {
+  await usageFlow.incrementUsage(params);
+} catch (error) {
+  if (error instanceof UsageFlowError) {
+    switch (error.code) {
+      case ErrorCodes.USAGE_INVALID_PARAMS:
+        // Handle validation errors
+        break;
+      case ErrorCodes.USAGE_CONFIG_ERROR:
+        // Handle database/config issues
+        break;
+      // ... handle other codes
+    }
+  }
+}
+```
+
+2. **Use error details**:
+```typescript
+catch (error) {
+  if (error instanceof UsageFlowError) {
+    console.error(`${error.code}: ${error.message}`);
+    console.error('Details:', error.details);
+    // details includes contextual information
+  }
+}
+```
+
+3. **Log database errors**:
+```typescript
+catch (error) {
+  if (error.code === 'USAGE_CONFIG_ERROR') {
+    console.error(
+      'Database operation failed:', 
+      error.details.originalError,
+      'Table:', error.details.table
+    );
+  }
+}
+```
+
+## Debug Mode
 
 Enable detailed logging:
 
@@ -636,7 +695,7 @@ const usageFlow = new UsageFlow({
 });
 ```
 
-### TODO
+## TODO
 
 The following test coverage improvements are planned:
 
