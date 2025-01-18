@@ -42,6 +42,9 @@ Building a SaaS application often requires tracking usage—whether for API call
 
 Focus on your core business logic without writing a custom usage tracking system from scratch.
 
+[![Image from Gyazo](https://i.gyazo.com/05aaa209c7bca9b17613c4bee27f1c25.png)](https://gyazo.com/05aaa209c7bca9b17613c4bee27f1c25)
+Check the `/usage` endpoint in then DEMO Project: https://github.com/richardsondx/subscription-helper-demo
+
 ## Common Use Cases
 
 ### 1. Tiered Feature Access
@@ -49,12 +52,13 @@ Perfect for managing multi-tier subscriptions:
 - Basic: 100 exports/month
 - Pro: 1000 exports/month
 - Enterprise: Unlimited exports
-   ```javascript
+
+```javascript
 const canAccess = await usageFlow.authorize({
   userId: 'user-123',
   featureName: 'ai_chat_limit'
    });
-   ```
+```
 The package automatically determines the user's plan and feature access based on their subscription
 
 
@@ -63,13 +67,14 @@ Perfect for platforms offering credit-based services like:
 - Design tools with export credits
 - API gateways with request quotas
 - File processing services with conversion limits
-   ```javascript
+
+```javascript
 await usageFlow.incrementUsage({
      userId: 'user-123',
   featureName: 'design-export',
   creditsUsed: 1
    });
-   ```
+```
 
 ### 3. AI Service Wrappers
 Ideal for applications managing AI model usage:
@@ -77,7 +82,7 @@ Ideal for applications managing AI model usage:
 - Monitor image generation credits
 - Enforce rate limits per model type
 
-   ```javascript
+```javascript
 await usageFlow.incrementUsage({
      userId: 'user-123',
   featureName: 'gpt-4-completion',
@@ -509,7 +514,8 @@ export async function POST(req) {
 ### Setting Up Webhooks
 
 1. **Create Webhook Endpoint**:
-   ```javascript
+
+```javascript
 // app/api/webhooks/route.js
 import Stripe from 'stripe';
 
@@ -538,6 +544,7 @@ export async function POST(req) {
 ```
 
 2. **Test locally using Stripe CLI**:
+
 ```bash
 # Install Stripe CLI if you haven't already
 brew install stripe/stripe-cli/stripe
