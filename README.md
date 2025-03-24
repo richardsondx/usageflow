@@ -1,4 +1,4 @@
-# UsageFlow (In Development)
+# UsageFlow (Experimental)
 
 <p align="center">
   <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png" height="40" alt="Stripe" />
@@ -7,7 +7,7 @@
 </p>
 
 
-A **lightweight Node.js package** for **usage tracking** and **limit enforcement** in SaaS applications. **UsageFlow** integrates seamlessly with the [`saas-subscription-helper`](https://github.com/richardsondx/saas-subscription-helper) package by default, or you can build a **custom (manual) Stripe integration** if preferred.
+A **lightweight Node.js package** for **usage tracking** and **limit enforcement** with Stripe Payment Link in SaaS applications. **UsageFlow** integrates seamlessly with the [`saas-subscription-helper`](https://github.com/richardsondx/saas-subscription-helper) package by default, or you can build a **custom (manual) Stripe integration** if preferred.
 
 > **Status:** Not production-ready yet. Early adopters welcome.
 
