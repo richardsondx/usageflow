@@ -33,6 +33,8 @@ A **lightweight Node.js package** for **usage tracking** and **limit enforcement
 
 ## Introduction
 
+Stripe Payment Link doesn't have usage tracking. 
+
 Building a SaaS application often requires tracking usage—whether for API calls, AI model tokens, or digital asset generation. **UsageFlow** provides:
 
 - **Easy usage logging**: A straightforward way to track per-feature consumption.
